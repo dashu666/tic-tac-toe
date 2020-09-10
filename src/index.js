@@ -21,29 +21,30 @@ class Board extends React.Component {
   renderSquare(i) {
     return (
       <Square 
+        key={i}
         value={this.props.squares[i]} 
         onClick={() => this.props.onClick(i)}/>
     );
   }
 
   render() {
+    let total = this.props.total;
+    let row = Math.sqrt(total)
+    // 使用两个循环来渲染出棋盘的格子
+    let outerDiv = [];
+    for(let i = 0; i < total ; i+=row) {
+      let squares = [];
+      for(let j = i; j < i + row; j = j + 1) {
+        let square = this.renderSquare(j)
+        squares.push(square)
+      }
+      outerDiv.push(
+        <div key={i} className="board-row">{squares}</div>
+      )
+    }
     return (
       <div>
-        <div className="board-row">
-          {this.renderSquare(0)}
-          {this.renderSquare(1)}
-          {this.renderSquare(2)}
-        </div>
-        <div className="board-row">
-          {this.renderSquare(3)}
-          {this.renderSquare(4)}
-          {this.renderSquare(5)}
-        </div>
-        <div className="board-row">
-          {this.renderSquare(6)}
-          {this.renderSquare(7)}
-          {this.renderSquare(8)}
-        </div>
+        {outerDiv}
       </div>
     );
   }
@@ -60,7 +61,9 @@ class Game extends React.Component {
         squares: Array(9).fill(null)
       }],
       stepNumber: 0, // 当前正在查看哪一项历史记录
-      xIsNext: true
+      xIsNext: true,
+      desc:false, // 降序
+      total: 9 // 格子数
     }
   }
   render() {
@@ -70,9 +73,11 @@ class Game extends React.Component {
 
     const moves = history.map((step, move) => {
       const desc = move ? 'Go to move #' + move : 'Go to game start';
+      // 在历史记录列表中加粗显示当前选择的项目
+      let className = this.state.stepNumber === move ? 'bold' : '';
       return (
         <li key={move}>
-          <button onClick={() => this.jumpTo(move)}>{desc}</button>
+          <button className={ className } onClick={() => this.jumpTo(move)}>{desc}</button>
         </li>
       )
     })
@@ -80,6 +85,8 @@ class Game extends React.Component {
     let status;
     if (winner) {
       status = 'Winner:' + winner;
+    } else if (this.state.stepNumber === this.state.total) { // 当无人获胜时，显示一个平局的消息。
+      status = 'It ends in a draw';
     } else {
       status = 'Next player: ' + (this.state.xIsNext ? 'X' : 'O');
     }
@@ -87,15 +94,25 @@ class Game extends React.Component {
       <div className="game">
         <div className="game-board">
           <Board 
+            total={this.state.total}
             squares={current.squares} 
             onClick={(i) => this.handleClick(i)}/>
         </div>
         <div className="game-info">
           <div>{status}</div>
-          <ol>{moves}</ol>
+          <ol>{ this.state.desc ? moves.reverse() : moves}</ol>
+        </div>
+        <div>
+          <button onClick={() => this.historySort()}>排序</button>
         </div>
       </div>
     );
+  }
+  // 升序或降序显示历史记录
+  historySort() {
+    this.setState({
+      desc: !this.state.desc
+    })
   }
   handleClick(i) {
     const history = this.state.history.slice(0, this.state.stepNumber + 1);
